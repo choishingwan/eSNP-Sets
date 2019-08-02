@@ -368,7 +368,7 @@ std::vector<std::vector<double>> gen_pathway_member(
     size_t total_entry = 0, included_entry = 0, cur_snp_idx;
     std::vector<std::string> snp_id;
     std::string cur_id, gene_name;
-    double p_value;
+    double p_value = 2.0;
     while ((is_gz && getline(gz_eqtl, line)) || (!is_gz && getline(eqtl, line)))
     {
         misc::trim(line);
