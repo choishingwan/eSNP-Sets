@@ -628,16 +628,20 @@ gen_binary_pathway_member(
         size_t col = calculate_column(p_value, p_threshold, pthres);
         for (size_t col_idx = col; col_idx < num_threshold; ++col_idx)
         { snps[res->second][col_idx / 64] |= 1ULL << ((col_idx) % 64); }
-        for (size_t set_idx = 1; set_idx < num_set; ++set_idx)
+        if (!background_only)
         {
-            // loop through the remaining sets
-            if ((gene_info->second[(set_idx) / 64] >> ((set_idx) % 64)) & 1)
+            for (size_t set_idx = 1; set_idx < num_set; ++set_idx)
             {
-                size_t cur_idx = set_idx * num_threshold;
-                for (size_t col_idx = col; col_idx < num_threshold; ++col_idx)
+                // loop through the remaining sets
+                if ((gene_info->second[(set_idx) / 64] >> ((set_idx) % 64)) & 1)
                 {
-                    snps[res->second][(cur_idx + col_idx) / 64] |=
-                        1ULL << ((cur_idx + col_idx) % 64);
+                    size_t cur_idx = set_idx * num_threshold;
+                    for (size_t col_idx = col; col_idx < num_threshold;
+                         ++col_idx)
+                    {
+                        snps[res->second][(cur_idx + col_idx) / 64] |=
+                            1ULL << ((cur_idx + col_idx) % 64);
+                    }
                 }
             }
         }
