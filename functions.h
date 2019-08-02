@@ -303,6 +303,7 @@ get_snps(const std::string& target, const std::string& sumstat_name,
     std::cerr << result.size()
               << " SNPs common to the bim and summary statistic file found"
               << std::endl;
+
     return result;
 }
 

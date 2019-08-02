@@ -34,6 +34,11 @@ int main(int argc, char* argv[])
     std::cerr << "Start processing bim and summary statistic file" << std::endl;
     std::unordered_map<std::string, std::string> snp_id_map = get_snps(
         commander.target(), commander.sumstat(), commander.sumstat_snp());
+    if (snp_id_map.empty())
+    {
+        std::cerr << "Error: No SNPs left!" << std::endl;
+        return -1;
+    }
     std::cerr << "Obtain eQTL p-values" << std::endl;
     std::vector<std::vector<double>> snp_p = gen_pathway_member(
         commander.eqtl(), commander.eqtl_snp(), commander.eqtl_gene(),
