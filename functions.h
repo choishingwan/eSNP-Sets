@@ -266,10 +266,12 @@ get_snps(const std::string& target, const std::string& sumstat_name,
         throw std::runtime_error(error_message);
     }
     size_t num_not_found = 0;
+    size_t num_line = 0;
     while (std::getline(bim, line))
     {
         misc::trim(line);
         if (line.empty()) continue;
+        ++num_line;
         token = misc::split(line);
         if (token.size() != 6)
         {
@@ -286,8 +288,8 @@ get_snps(const std::string& target, const std::string& sumstat_name,
             {
                 std::cerr << "Warning: Duplicated SNP ID generated - " << id
                           << std::endl;
-                result[id] = token[1];
             }
+            result[id] = token[1];
         }
         else
         {
@@ -297,6 +299,7 @@ get_snps(const std::string& target, const std::string& sumstat_name,
     bim.close();
     // now we can read in the snp id from the summary statistic and generate the
     // location information
+    std::cerr << num_line << " SNPs in bim file" << std::endl;
     std::cerr << num_not_found
               << " SNPs in bim file not found in the summary statistic file"
               << std::endl;
