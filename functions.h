@@ -465,11 +465,14 @@ std::unordered_map<std::string, std::vector<double>> gen_pathway_member(
         gz_eqtl.close();
     else
         eqtl.close();
+    // SNP matrix is way too big.
     // now we have SNPs, which contain the p-value of each SNP to each set
     std::cerr << snps.size() << " SNPs remaining after reading the eQTL file"
               << std::endl;
     return snps;
 }
+
+
 size_t calculate_column(const double& pvalue,
                         const std::vector<double>& barlevels, double& pthres)
 {
@@ -485,8 +488,173 @@ size_t calculate_column(const double& pvalue,
     pthres = 1.0;
     return barlevels.size();
 }
+
+std::unordered_map<std::string, std::vector<uint64_t>>
+gen_binary_pathway_member(
+    const std::string& eqtl_name, const std::string& eqtl_snp_id,
+    const std::string& eqtl_gene_id, const std::string& eqtl_p,
+    const std::unordered_map<std::string, std::string>& valid_snps,
+    const std::unordered_map<std::string, std::vector<uint64_t>>&
+        gene_membership,
+    const std::vector<double>& p_threshold, const size_t num_set)
+{
+    std::unordered_map<std::string, std::vector<uint64_t>> snps;
+    bool is_gz = eqtl_name.substr(eqtl_name.find_last_of(".") + 1) == ("gz");
+    std::ifstream eqtl;
+    GZSTREAM_NAMESPACE::igzstream gz_eqtl;
+    std::string error_message = "";
+    std::string line;
+    if (is_gz)
+    {
+        gz_eqtl.open(eqtl_name.c_str());
+        if (!gz_eqtl.good())
+        {
+            error_message = "Error: Cannot open gziped eQTL file: " + eqtl_name;
+            throw std::runtime_error(error_message);
+        }
+        std::getline(gz_eqtl, line);
+    }
+    else
+    {
+        eqtl.open(eqtl_name.c_str());
+        if (!eqtl.is_open())
+        {
+            error_message = "Error: Cannot open eQTL file: " + eqtl_name;
+            throw std::runtime_error(error_message);
+        }
+        std::getline(eqtl, line);
+    }
+    misc::trim(line);
+    if (line.empty())
+    {
+        error_message = "Error: Header of eQTL file is empty";
+        throw std::runtime_error(error_message);
+    }
+
+    size_t snp_idx = 0, p_idx = 0, gene_idx = 0;
+    bool snp_found = false, p_found = false, gene_found = false;
+    std::vector<std::string> token = misc::split(line);
+    for (size_t i = 0; i < token.size(); ++i)
+    {
+        if (token[i] == eqtl_snp_id)
+        {
+            snp_idx = i;
+            snp_found = true;
+        }
+        if (token[i] == eqtl_gene_id)
+        {
+            gene_idx = i;
+            gene_found = true;
+        }
+        if (token[i] == eqtl_p)
+        {
+            p_idx = i;
+            p_found = true;
+        }
+    }
+    if (!snp_found || !p_found || !gene_found)
+    {
+        error_message =
+            "Error: Required columns not found in the eQTL file: " + line;
+        throw std::runtime_error(error_message);
+    }
+    size_t max_idx = 0;
+    if (snp_idx > max_idx) max_idx = snp_idx;
+    if (gene_idx > max_idx) max_idx = gene_idx;
+    if (p_idx > max_idx) max_idx = p_idx;
+    // now process the eqtl file
+    size_t total_entry = 0, included_entry = 0;
+    std::vector<std::string> snp_id;
+    std::string cur_id, gene_name;
+    double p_value = 2.0, pthres;
+    // don't need to + 1 here, as background is included
+    const size_t num_threshold = p_threshold.size();
+    const size_t flag_size = ((num_set * num_threshold) / 64) + 1;
+
+    while ((is_gz && getline(gz_eqtl, line)) || (!is_gz && getline(eqtl, line)))
+    {
+        misc::trim(line);
+        if (line.empty()) continue;
+        total_entry++;
+        token = misc::split(line);
+        if (max_idx >= token.size())
+        {
+            error_message = "Error: eQTL file does not contain enough columns!";
+            throw std::runtime_error(error_message);
+        }
+        snp_id = misc::split(token[snp_idx], "_");
+        // only use chr and bp to match
+        if (snp_id.size() < 2)
+        {
+            error_message =
+                "Error: Malform SNP ID. Should have format CHR_BP_A1_A2";
+            throw std::runtime_error(error_message);
+        }
+        cur_id = snp_id[0] + "_" + snp_id[1];
+        auto&& res = valid_snps.find(cur_id);
+        if (res == valid_snps.end()) continue;
+        // found
+        included_entry++;
+        gene_name = token[gene_idx];
+        try
+        {
+            p_value = misc::convert<double>(token[p_idx]);
+        }
+        catch (const std::runtime_error&)
+        {
+            // check if it is NA
+            std::transform(token[p_idx].begin(), token[p_idx].end(),
+                           token[p_idx].begin(), ::toupper);
+            if (token[p_idx] != "NAN" && token[p_idx] != "NA"
+                && token[p_idx] != "NULL")
+            {
+                error_message =
+                    "Error: Non-numeric p-value: " + misc::to_string(p_value);
+                throw std::runtime_error(error_message);
+            }
+        }
+        auto&& gene_info = gene_membership.find(gene_name);
+        // Gene isn't found in MSigDB, so should be consider as part of the
+        // background
+        bool background_only = (gene_info == gene_membership.end());
+        auto&& idx = snps.find(cur_id);
+        if (idx == snps.end())
+        {
+            // num_set should contain the background here
+            // use res->second for the RS ID instead of the eQTL ID
+            snps[res->second] = std::vector<uint64_t>(flag_size, 0ULL);
+        }
+        // take care of background first
+        size_t col = calculate_column(p_value, p_threshold, pthres);
+        for (size_t col_idx = col; col_idx < num_threshold; ++col_idx)
+        { snps[res->second][col_idx / 64] |= 1ULL << ((col_idx) % 64); }
+        for (size_t set_idx = 1; set_idx < num_set; ++set_idx)
+        {
+            // loop through the remaining sets
+            if ((gene_info->second[(set_idx) / 64] >> ((set_idx) % 64)) & 1)
+            {
+                size_t cur_idx = set_idx * num_threshold;
+                for (size_t col_idx = col; col_idx < num_threshold; ++col_idx)
+                {
+                    snps[res->second][(cur_idx + col_idx) / 64] |=
+                        1ULL << ((cur_idx + col_idx) % 64);
+                }
+            }
+        }
+    }
+    if (is_gz)
+        gz_eqtl.close();
+    else
+        eqtl.close();
+    // SNP matrix is way too big.
+    // now we have SNPs, which contain the p-value of each SNP to each set
+    std::cerr << snps.size() << " SNPs remaining after reading the eQTL file"
+              << std::endl;
+    return snps;
+}
+
 void generate_snp_sets(
-    const std::unordered_map<std::string, std::vector<double>>& snps,
+    const std::unordered_map<std::string, std::vector<uint64_t>>& snps,
     const std::vector<std::string>& set_name,
     const std::vector<double>& p_thresholds, const std::string& out)
 {
@@ -504,21 +672,21 @@ void generate_snp_sets(
     std::cerr << "A total of " << set_name.size() * p_thresholds.size()
               << " SNP Sets should be generated" << std::endl;
     std::string rsid = "";
-    double path_p = 2.0, pthres;
-    size_t max_column;
+    const size_t num_sets = set_name.size();
+    const size_t num_threshold = p_thresholds.size();
     for (auto& snp : snps)
     {
         // go through each SNP
         rsid = snp.first;
-        for (size_t idx = 0; idx < snp.second.size(); ++idx)
+        for (size_t i_row = 0; i_row < num_sets; ++i_row)
         {
-            // going through each pathway for this set
-            // p-value > 1 = not in this pathway
-            path_p = snp.second[idx];
-            if (path_p > 1) continue;
-            max_column = calculate_column(path_p, p_thresholds, pthres);
-            for (size_t col = 0; col < max_column; ++col)
-            { pathway_map(idx, col).append(" " + rsid); }
+            for (size_t i_col = 0; i_col < num_threshold; ++i_col)
+            {
+                if ((snp.second[(i_row * num_threshold + i_col) / 64]
+                     >> ((i_row * num_threshold + i_col) % 64))
+                    & 1)
+                { pathway_map(i_row, i_col).append(" " + rsid); }
+            }
         }
     }
     // now we can write the output
