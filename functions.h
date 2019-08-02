@@ -635,12 +635,12 @@ gen_binary_pathway_member(
                 // loop through the remaining sets
                 if ((gene_info->second[(set_idx) / 64] >> ((set_idx) % 64)) & 1)
                 {
-                    size_t cur_idx = set_idx * num_threshold;
                     for (size_t col_idx = col; col_idx < num_threshold;
                          ++col_idx)
                     {
-                        snps[res->second][(cur_idx + col_idx) / 64] |=
-                            1ULL << ((cur_idx + col_idx) % 64);
+                        snps[res->second]
+                            [(set_idx * num_threshold + col_idx) / 64] |=
+                            1ULL << ((set_idx * num_threshold + col_idx) % 64);
                     }
                 }
             }
