@@ -2,6 +2,7 @@
 #define COMMANDER_H
 
 #include "misc.hpp"
+#include <algorithm>
 #include <getopt.h>
 #include <iostream>
 #include <stdexcept>

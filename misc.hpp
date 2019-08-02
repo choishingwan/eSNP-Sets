@@ -71,7 +71,7 @@ public:
         m_storage.resize(row * col, def);
         m_row = row;
         m_col = col;
-    };
+    }
     vec2d(size_t row, size_t col)
     {
         if (row == 0 || col == 0)
@@ -79,7 +79,7 @@ public:
         m_storage.resize(row * col);
         m_row = row;
         m_col = col;
-    };
+    }
     T operator()(size_t row, size_t col) const
     {
         if (row > m_row || col > m_col)
@@ -93,8 +93,8 @@ public:
         return m_storage[row * m_col + col];
     }
     void clear() { m_storage.clear(); }
-    size_t rows() const { return m_row; };
-    size_t cols() const { return m_col; };
+    size_t rows() const { return m_row; }
+    size_t cols() const { return m_col; }
 
 private:
     size_t m_row = 0;

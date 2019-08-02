@@ -146,6 +146,7 @@ bool Commander::initialize(int argc, char** argv)
     std::cerr << "    --rsid " << m_s_snp_id << " \\" << std::endl;
     std::cerr << "    --sumstat " << m_sumstat_name << " \\" << std::endl;
     std::cerr << "    --target " << m_target_name << std::endl;
+    std::sort(m_p_threshold.begin(), m_p_threshold.end());
     return true;
 }
 void Commander::usage()

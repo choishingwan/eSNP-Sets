@@ -310,7 +310,7 @@ get_snps(const std::string& target, const std::string& sumstat_name,
     return result;
 }
 
-std::vector<std::vector<double>> gen_pathway_member(
+std::unordered_map<std::string, std::vector<double>> gen_pathway_member(
     const std::string& eqtl_name, const std::string& eqtl_snp_id,
     const std::string& eqtl_gene_id, const std::string& eqtl_p,
     const std::unordered_map<std::string, std::string>& valid_snps,
@@ -319,8 +319,7 @@ std::vector<std::vector<double>> gen_pathway_member(
     const size_t num_set)
 {
 
-    std::vector<std::vector<double>> snps(valid_snps.size());
-    std::unordered_map<std::string, size_t> snp_map_idx;
+    std::unordered_map<std::string, std::vector<double>> snps;
     bool is_gz = eqtl_name.substr(eqtl_name.find_last_of(".") + 1) == ("gz");
     std::ifstream eqtl;
     GZSTREAM_NAMESPACE::igzstream gz_eqtl;
@@ -435,18 +434,18 @@ std::vector<std::vector<double>> gen_pathway_member(
         // Gene isn't found in MSigDB, so should be consider as part of the
         // background
         bool background_only = (gene_info == gene_membership.end());
-        auto&& idx = snp_map_idx.find(cur_id);
-        if (idx == snp_map_idx.end())
+        auto&& idx = snps.find(cur_id);
+        if (idx == snps.end())
         {
-            snp_map_idx[cur_id] = snps.size();
             // num_set should contain the background here
-            snps.push_back(std::vector<double>(num_set, 2.0));
+            // use res->second for the RS ID instead of the eQTL ID
+            snps[res->second] = std::vector<double>(num_set, 2.0);
         }
-        cur_snp_idx = snp_map_idx[cur_id];
+
         if (background_only)
         {
-            double cur_p = snps[cur_snp_idx][0];
-            if (cur_p > p_value) { snps[cur_snp_idx][0] = p_value; }
+            double cur_p = snps[res->second][0];
+            if (cur_p > p_value) { snps[res->second][0] = p_value; }
         }
         else
         {
@@ -456,8 +455,8 @@ std::vector<std::vector<double>> gen_pathway_member(
                 if ((gene_info->second[(set_idx) / 64] >> ((set_idx) % 64)) & 1)
                 {
                     // this is the set
-                    double cur_p = snps[cur_snp_idx][set_idx];
-                    if (cur_p > p_value) snps[cur_snp_idx][set_idx] = p_value;
+                    double cur_p = snps[res->second][set_idx];
+                    if (cur_p > p_value) snps[res->second][set_idx] = p_value;
                 }
             }
         }
@@ -471,11 +470,25 @@ std::vector<std::vector<double>> gen_pathway_member(
               << std::endl;
     return snps;
 }
-
-void generate_snp_sets(const std::vector<std::vector<double>>& snps,
-                       const std::vector<std::string>& set_name,
-                       const std::vector<double>& p_thresholds,
-                       const std::string& out)
+size_t calculate_column(const double& pvalue,
+                        const std::vector<double>& barlevels, double& pthres)
+{
+    for (size_t i = 0; i < barlevels.size(); ++i)
+    {
+        if (pvalue < barlevels[i]
+            || misc::logically_equal(pvalue, barlevels[i]))
+        {
+            pthres = barlevels[i];
+            return i;
+        }
+    }
+    pthres = 1.0;
+    return barlevels.size();
+}
+void generate_snp_sets(
+    const std::unordered_map<std::string, std::vector<double>>& snps,
+    const std::vector<std::string>& set_name,
+    const std::vector<double>& p_thresholds, const std::string& out)
 {
     std::ofstream output;
     output.open(out.c_str());
@@ -485,5 +498,43 @@ void generate_snp_sets(const std::vector<std::vector<double>>& snps,
         error_message = "Error: Cannot open output file - " + out + " to write";
         throw std::runtime_error(error_message);
     }
+    // row = pathway, col = p-value threshold
+    misc::vec2d<std::string> pathway_map(set_name.size(), p_thresholds.size(),
+                                         "");
+    std::cerr << "A total of " << set_name.size() * p_thresholds.size()
+              << " SNP Sets should be generated" << std::endl;
+    std::string rsid = "";
+    double path_p = 2.0, pthres;
+    size_t max_column;
+    for (auto& snp : snps)
+    {
+        // go through each SNP
+        rsid = snp.first;
+        for (size_t idx = 0; idx < snp.second.size(); ++idx)
+        {
+            // going through each pathway for this set
+            // p-value > 1 = not in this pathway
+            path_p = snp.second[idx];
+            if (path_p > 1) continue;
+            max_column = calculate_column(path_p, p_thresholds, pthres);
+            for (size_t col = 0; col < max_column; ++col)
+            { pathway_map(idx, col).append(" " + rsid); }
+        }
+    }
+    // now we can write the output
+    std::string cur_name;
+    for (size_t row_idx = 0; row_idx < set_name.size(); ++row_idx)
+    {
+        cur_name = set_name[row_idx];
+        std::replace(cur_name.begin(), cur_name.end(), "-", "_");
+        for (size_t col_idx = 0; col_idx < p_thresholds.size(); ++col_idx)
+        {
+            // we don't need the space here, because pathway_map already
+            // contain the space
+            output << cur_name << "-" << p_thresholds[col_idx]
+                   << pathway_map(row_idx, col_idx) << "\n";
+        }
+    }
+    output.close();
 }
 #endif // FUNCTIONS_H

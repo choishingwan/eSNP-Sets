@@ -40,8 +40,11 @@ int main(int argc, char* argv[])
         return -1;
     }
     std::cerr << "Obtain eQTL p-values" << std::endl;
-    std::vector<std::vector<double>> snp_p = gen_pathway_member(
-        commander.eqtl(), commander.eqtl_snp(), commander.eqtl_gene(),
-        commander.eqtl_pvalue(), snp_id_map, gene_membership, set_names.size());
+    std::unordered_map<std::string, std::vector<double>> snp_p =
+        gen_pathway_member(commander.eqtl(), commander.eqtl_snp(),
+                           commander.eqtl_gene(), commander.eqtl_pvalue(),
+                           snp_id_map, gene_membership, set_names.size());
+    generate_snp_sets(snp_p, set_names, commander.threshold(), commander.out());
+    std::cerr << "Completed" << std::endl;
     return 0;
 }
