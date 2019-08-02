@@ -246,6 +246,8 @@ get_snps(const std::string& target, const std::string& sumstat_name,
         gz_sumstat.close();
     else
         sumstat.close();
+    std::cerr << snp_in_sumstat.size()
+              << " SNPs found in the summary statistic file" << std::endl;
     // now process the bim file, where we have a well defined format
     std::ifstream bim;
     bool is_bim = target.substr(target.find_last_of(".") + 1) == ("bim");
@@ -263,6 +265,7 @@ get_snps(const std::string& target, const std::string& sumstat_name,
             error_message.append(target + ".bim");
         throw std::runtime_error(error_message);
     }
+    size_t num_not_found = 0;
     while (std::getline(bim, line))
     {
         misc::trim(line);
@@ -286,10 +289,17 @@ get_snps(const std::string& target, const std::string& sumstat_name,
                 result[id] = token[1];
             }
         }
+        else
+        {
+            ++num_not_found;
+        }
     }
     bim.close();
     // now we can read in the snp id from the summary statistic and generate the
     // location information
+    std::cerr << num_not_found
+              << " SNPs in bim file not found in the summary statistic file"
+              << std::endl;
     std::cerr << result.size()
               << " SNPs common to the bim and summary statistic file found"
               << std::endl;
@@ -463,5 +473,13 @@ void generate_snp_sets(const std::vector<std::vector<double>>& snps,
                        const std::vector<double>& p_thresholds,
                        const std::string& out)
 {
+    std::ofstream output;
+    output.open(out.c_str());
+    std::string error_message = "";
+    if (!output.is_open())
+    {
+        error_message = "Error: Cannot open output file - " + out + " to write";
+        throw std::runtime_error(error_message);
+    }
 }
 #endif // FUNCTIONS_H
