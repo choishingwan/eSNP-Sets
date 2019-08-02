@@ -39,6 +39,8 @@ private:
     std::string m_e_pvalue = "";
     std::string m_s_snp_id = "";
     std::string m_out = "out";
+    std::string m_version = "0.0.1";
+    std::string m_date = "2019-08-02";
     void usage();
 };
 

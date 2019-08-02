@@ -150,6 +150,10 @@ bool Commander::initialize(int argc, char** argv)
 }
 void Commander::usage()
 {
+    std::cerr << "\neSNP-Sets " + m_version + " (" + m_date + ") \n";
+    std::cerr << "https://github.com/choishingwan/eSNP-Sets\n";
+    std::cerr << "(C) 2019 Shing Wan (Sam) Choi\n";
+    std::cerr << "MIT License\n\n";
     std::cerr << "usage: eSNP-Sets [options] <-e eQTL file> <-t Target file> "
                  "<-s Sumstat file>"
               << std::endl;
