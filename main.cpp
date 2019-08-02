@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     std::cerr << "Start processing bim and summary statistic file" << std::endl;
     std::unordered_map<std::string, std::string> snp_id_map = get_snps(
         commander.target(), commander.sumstat(), commander.sumstat_snp());
-    if (snp_id_map.empty())
+    if (snp_id_map.empty() || snp_id_map.size() == 0)
     {
         std::cerr << "Error: No SNPs left!" << std::endl;
         return -1;
