@@ -92,6 +92,8 @@ gen_gene_id_map(const std::string& gtf_name)
     {
         gtf.close();
     }
+    std::cerr << result.size() << " gene identified in the GTF file"
+              << std::endl;
     return result;
 }
 
@@ -167,6 +169,7 @@ std::unordered_map<std::string, std::vector<uint64_t>> gen_gene_membership(
         ++idx;
     }
     msigdb.close();
+    std::cerr << num_sets << " Set(s) found in the MSigDB file" << std::endl;
     return result;
 }
 
@@ -287,6 +290,9 @@ get_snps(const std::string& target, const std::string& sumstat_name,
     bim.close();
     // now we can read in the snp id from the summary statistic and generate the
     // location information
+    std::cerr << result.size()
+              << " SNPs common to the bim and summary statistic file found"
+              << std::endl;
     return result;
 }
 
@@ -447,6 +453,15 @@ std::vector<std::vector<double>> gen_pathway_member(
     else
         eqtl.close();
     // now we have SNPs, which contain the p-value of each SNP to each set
+    std::cerr << snps.size() << " SNPs remaining after reading the eQTL file"
+              << std::endl;
     return snps;
+}
+
+void generate_snp_sets(const std::vector<std::vector<double>>& snps,
+                       const std::vector<std::string>& set_name,
+                       const std::vector<double>& p_thresholds,
+                       const std::string& out)
+{
 }
 #endif // FUNCTIONS_H
