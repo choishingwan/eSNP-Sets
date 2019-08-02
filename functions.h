@@ -384,7 +384,7 @@ std::unordered_map<std::string, std::vector<double>> gen_pathway_member(
     if (gene_idx > max_idx) max_idx = gene_idx;
     if (p_idx > max_idx) max_idx = p_idx;
     // now process the eqtl file
-    size_t total_entry = 0, included_entry = 0, cur_snp_idx;
+    size_t total_entry = 0, included_entry = 0;
     std::vector<std::string> snp_id;
     std::string cur_id, gene_name;
     double p_value = 2.0;
@@ -526,7 +526,7 @@ void generate_snp_sets(
     for (size_t row_idx = 0; row_idx < set_name.size(); ++row_idx)
     {
         cur_name = set_name[row_idx];
-        std::replace(cur_name.begin(), cur_name.end(), "-", "_");
+        std::replace(cur_name.begin(), cur_name.end(), '-', '_');
         for (size_t col_idx = 0; col_idx < p_thresholds.size(); ++col_idx)
         {
             // we don't need the space here, because pathway_map already
