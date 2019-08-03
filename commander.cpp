@@ -130,7 +130,10 @@ bool Commander::initialize(int argc, char** argv)
         error_message.append("Error: You must provide the output file name\n");
     }
     if (error) { throw std::runtime_error(error_message); }
-
+    std::cerr << "\neSNP-Sets " + m_version + " (" + m_date + ") \n";
+    std::cerr << "https://github.com/choishingwan/eSNP-Sets\n";
+    std::cerr << "(C) 2019 Shing Wan (Sam) Choi\n";
+    std::cerr << "MIT License\n\n";
     std::cerr << argv[0] << " \\" << std::endl;
     std::cerr << "    --eGene " << m_e_gene_id << " \\" << std::endl;
     std::cerr << "    --eP " << m_e_pvalue << " \\" << std::endl;
