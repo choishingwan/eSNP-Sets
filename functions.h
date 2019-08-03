@@ -570,7 +570,7 @@ gen_binary_pathway_member(
     // don't need to + 1 here, as background is included
     const size_t num_threshold = p_threshold.size();
     const size_t flag_size = ((num_set * num_threshold) / 64) + 1;
-
+    std::vector<std::string> gene_name_info;
     while ((is_gz && getline(gz_eqtl, line)) || (!is_gz && getline(eqtl, line)))
     {
         misc::trim(line);
@@ -616,7 +616,15 @@ gen_binary_pathway_member(
         auto&& gene_info = gene_membership.find(gene_name);
         // Gene isn't found in MSigDB, so should be consider as part of the
         // background
+        if (gene_info == gene_membership.end())
+        {
+            // This might be because of the new gene id format used by gtex
+            // which follow the format geneID.Version
+            gene_name_info = misc::split(gene_name, ".");
+            gene_info = gene_membership.find(gene_name_info.front());
+        }
         bool background_only = (gene_info == gene_membership.end());
+
         auto&& idx = snps.find(cur_id);
         if (idx == snps.end())
         {
