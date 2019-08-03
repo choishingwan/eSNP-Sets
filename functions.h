@@ -73,11 +73,16 @@ gen_gene_id_map(const std::string& gtf_name)
             {
                 has_gene_id = true;
                 gene_id = extract.back();
+                gene_id.erase(std::remove(gene_id.begin(), gene_id.end(), '\"'),
+                              gene_id.end());
             }
             else if (extract.front() == "gene_name")
             {
                 has_gene_name = true;
                 gene_name = extract.back();
+                gene_name.erase(
+                    std::remove(gene_name.begin(), gene_name.end(), '\"'),
+                    gene_name.end());
             }
             if (has_gene_id && has_gene_name) break;
         }
@@ -170,6 +175,7 @@ std::unordered_map<std::string, std::vector<uint64_t>> gen_gene_membership(
     }
     msigdb.close();
     std::cerr << num_sets << " Set(s) found in the MSigDB file" << std::endl;
+    std::cerr << "With total of " << result.size() << " genes" << std::endl;
     return result;
 }
 
