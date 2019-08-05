@@ -109,6 +109,11 @@ double get_p(const std::string& p)
     try
     {
         p_value = misc::convert<double>(p);
+        if (p_value > 1.0 || p_value < 0.0)
+        {
+            throw std::runtime_error("Error: Undefined p-value - "
+                                     + misc::to_string(p_value));
+        }
     }
     catch (const std::runtime_error&)
     {
@@ -181,6 +186,11 @@ bool get_idx(const std::vector<std::string>& token, const std::string& id,
 size_t calculate_column(const double& pvalue,
                         const std::vector<double>& barlevels, double& pthres)
 {
+    if (pvalue < 0.0 || pvalue > 1.0)
+    {
+        throw std::runtime_error("Error: Undefined p-value - "
+                                 + misc::to_string(pvalue));
+    }
     for (size_t i = 0; i < barlevels.size(); ++i)
     {
         if (pvalue < barlevels[i]
@@ -256,11 +266,10 @@ std::unordered_map<std::string, std::vector<size_t>> gen_gene_membership(
     std::unordered_map<std::string, std::vector<size_t>> result;
     std::ifstream msigdb;
     msigdb.open(msigdb_name);
-    std::string error_message = "";
     if (!msigdb.is_open())
     {
-        error_message = "Error: Cannot open MSigDB file - " + msigdb_name;
-        throw std::runtime_error(error_message);
+        throw std::runtime_error("Error: Cannot open MSigDB file - "
+                                 + msigdb_name);
     }
     std::string line;
     std::vector<std::string> token;
@@ -279,6 +288,7 @@ std::unordered_map<std::string, std::vector<size_t>> gen_gene_membership(
     // idx starts at 1, because 0 is reserved for background set
     size_t idx = 1;
     set_name.push_back("Background");
+    std::string error_message = "";
     while (std::getline(msigdb, line))
     {
         misc::trim(line);
@@ -309,11 +319,9 @@ std::unordered_map<std::string, std::vector<size_t>> gen_gene_membership(
                 { set_bit(idx, result[gene_id]); }
                 else
                 {
-                    std::vector<size_t> tmp(flag_size, 0ULL);
-                    result[gene_id] = tmp;
+                    result[gene_id] = std::vector<size_t>(flag_size, 0ULL);
                     set_bit(0, result[gene_id]);
                     set_bit(idx, result[gene_id]);
-                    result[gene_id] = tmp;
                 }
             }
         }

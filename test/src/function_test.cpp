@@ -141,7 +141,6 @@ TEST(UTILITY, GET_P)
 {
     ASSERT_DOUBLE_EQ(get_p("0.1"), 0.1);
     ASSERT_DOUBLE_EQ(get_p("NA"), 2.0);
-    ASSERT_DOUBLE_EQ(get_p("1000"), 1000);
     try
     {
         get_p("Test");
@@ -151,6 +150,26 @@ TEST(UTILITY, GET_P)
     {
         SUCCEED();
     }
+    try
+    {
+        get_p("-1.0");
+        FAIL();
+    }
+    catch (const std::runtime_error&)
+    {
+        SUCCEED();
+    }
+    try
+    {
+        get_p("2.0");
+        FAIL();
+    }
+    catch (const std::runtime_error&)
+    {
+        SUCCEED();
+    }
+    ASSERT_DOUBLE_EQ(get_p("1.0"), 1.0);
+    ASSERT_DOUBLE_EQ(get_p("0.0"), 0.0);
 }
 
 TEST(UTILITY, IS_GZ_FILE)
@@ -248,5 +267,59 @@ TEST(UTILITY, OPEN_GZ)
     ASSERT_FALSE(res);
     ASSERT_TRUE(file.is_open());
     std::remove("DEBUG.gz");
+}
+
+TEST(UTILITY, GET_IDX)
+{
+    std::vector<std::string> token;
+    size_t idx;
+    ASSERT_FALSE(get_idx(token, "Test", idx));
+    ASSERT_EQ(idx, 0);
+    token = {"A", "B", "C", "D"};
+    ASSERT_FALSE(get_idx(token, "E", idx));
+    ASSERT_FALSE(get_idx(token, "AB", idx));
+    ASSERT_TRUE(get_idx(token, "A", idx));
+    ASSERT_EQ(idx, 0);
+    ASSERT_TRUE(get_idx(token, "B", idx));
+    ASSERT_EQ(idx, 1);
+    ASSERT_TRUE(get_idx(token, "C", idx));
+    ASSERT_EQ(idx, 2);
+    ASSERT_TRUE(get_idx(token, "D", idx));
+    ASSERT_EQ(idx, 3);
+}
+
+TEST(UTILITY, GET_COLUMN)
+{
+    double p_thres, p_value;
+    std::vector<double> barlevels;
+    ASSERT_EQ(calculate_column(p_value, barlevels, p_thres), 0);
+    ASSERT_EQ(calculate_column(1.0, barlevels, p_thres), 0);
+    // not allow undefined p-value
+    try
+    {
+        calculate_column(3.0, barlevels, p_thres);
+        FAIL();
+    }
+    catch (const std::runtime_error&)
+    {
+        SUCCEED();
+    }
+    try
+    {
+        calculate_column(-1, barlevels, p_thres);
+        FAIL();
+    }
+    catch (const std::runtime_error&)
+    {
+        SUCCEED();
+    }
+    barlevels = {0.0, 1.0};
+    ASSERT_EQ(calculate_column(0.0, barlevels, p_thres), 0);
+    ASSERT_EQ(calculate_column(1.0, barlevels, p_thres), 1);
+    barlevels.clear();
+    barlevels = {5e-8, 5e-7, 5e-6, 5e-5, 5e-4};
+    ASSERT_EQ(calculate_column(1.0, barlevels, p_thres), 5);
+    ASSERT_EQ(calculate_column(5e-8, barlevels, p_thres), 0);
+    ASSERT_EQ(calculate_column(1e-7, barlevels, p_thres), 1);
 }
 #endif // FUNCTION_TEST_H
