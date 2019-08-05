@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
         gene_id_map = gen_gene_id_map(commander.gtf());
     std::cerr << "Start processing MSigDB file" << std::endl;
     std::vector<std::string> set_names;
-    std::unordered_map<std::string, std::vector<uint64_t>> gene_membership =
+    std::unordered_map<std::string, std::vector<size_t>> gene_membership =
         gen_gene_membership(commander.msigdb(), gene_id_map, set_names);
     // we don't need the gene id map after processing the msigdb
     gene_id_map.clear();
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
         return -1;
     }
     std::cerr << "Obtain eQTL p-values" << std::endl;
-    std::unordered_map<std::string, std::vector<uint64_t>> snp_p =
+    std::unordered_map<std::string, std::vector<size_t>> snp_p =
         gen_binary_pathway_member(
             commander.eqtl(), commander.eqtl_snp(), commander.eqtl_gene(),
             commander.eqtl_pvalue(), snp_id_map, gene_membership,
