@@ -30,6 +30,18 @@
 #include <string>
 #include <vector>
 
+
+#if __i386 || _M_IX86
+#define BITCT 32
+#define ONEUL 1UL
+#elif __x86_64__ || _M_X64
+#define BITCT 64
+#define ONEUL 1ULL
+#else
+#error "Error: Cannot detect if it is 32bit or 64 bit system"
+#endif
+
+
 #if defined __APPLE__
 #include <mach/mach.h>
 #include <mach/mach_host.h>
@@ -130,7 +142,7 @@ inline int parseLine(char* line)
 }
 
 
-inline int getValue()
+inline int getLinuxRAM()
 { // Note: this value is in KB!
     FILE* file = fopen("/proc/self/status", "r");
     int result = -1;
@@ -138,9 +150,9 @@ inline int getValue()
 
     while (fgets(line, 128, file) != NULL)
     {
-        if (strncmp(line, "VmSize:", 7) == 0)
+        if (strncmp(line, "VmRSS:", 6) == 0)
         {
-            result = parseLine(line);
+            resuAM = parseLine(line);
             break;
         }
     }
@@ -171,7 +183,7 @@ inline size_t current_ram_usage()
     SIZE_T physMemUsedByMe = memCounter.WorkingSetSize;
     return physMemUsedByMe;
 #else
-    return getValue() * 1024;
+    return getLinuxRAM() * 1024;
 #endif
 }
 
