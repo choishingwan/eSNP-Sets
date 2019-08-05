@@ -21,7 +21,8 @@ void range_set_bit(const size_t& idx, const size_t& end,
                    std::vector<uint64_t>& flag)
 {
     assert(flag.size() > idx / 64);
-    assert(flag.size() > (end - 1) / 64);
+    // if size of flag = 1, valid end value = 0-63
+    assert(end <= flag.size() * 64 - 1);
     for (size_t start = idx; start < end; ++start) { set_bit(start, flag); }
 }
 bool get_bit(const size_t& idx, const std::vector<uint64_t>& flag)
