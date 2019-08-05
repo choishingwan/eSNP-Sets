@@ -10,25 +10,46 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-void set_bit(const size_t& idx, std::vector<uint64_t>& flag)
+void set_bit(const size_t& idx, std::vector<size_t>& flag)
 {
-    assert(flag.size() > idx / 64);
-    flag[idx / 64] |= 1ULL << ((idx) % 64);
+    if (flag.empty())
+    { throw std::runtime_error("Error: Empty Flag detected"); }
+    else if (!(flag.size() > idx / BITCT))
+    {
+        std::string error_message =
+            "Error: Flag index out of range: " + std::to_string(idx)
+            + ". Max idx allowed is " + std::to_string(flag.size() * BITCT - 1);
+        throw std::out_of_range(error_message);
+    }
+    flag[idx / BITCT] |= ONEUL << ((idx) % BITCT);
 }
 
 void range_set_bit(const size_t& idx, const size_t& end,
-                   std::vector<uint64_t>& flag)
+                   std::vector<size_t>& flag)
 {
-    assert(flag.size() > idx / 64);
-    // if size of flag = 1, valid end value = 0-63
-    assert(end <= flag.size() * 64 - 1);
+    if (flag.empty())
+    { throw std::runtime_error("Error: Empty Flag detected"); }
+    else if (!(flag.size() > idx / BITCT))
+    {
+        std::string error_message =
+            "Error: Flag index out of range: " + std::to_string(idx)
+            + ". Max idx allowed is " + std::to_string(flag.size() * BITCT - 1);
+        throw std::out_of_range(error_message);
+    }
+    else if (flag.size() * BITCT < end)
+    {
+        std::string error_message =
+            "Error: Flag end bound out of range: " + std::to_string(end)
+            + ". Max idx allowed is " + std::to_string(flag.size() * BITCT);
+        throw std::out_of_range(error_message);
+    }
     for (size_t start = idx; start < end; ++start) { set_bit(start, flag); }
 }
-bool get_bit(const size_t& idx, const std::vector<uint64_t>& flag)
+
+bool get_bit(const size_t& idx, const std::vector<size_t>& flag)
 {
-    assert(flag.size() > idx / 64);
-    return ((flag[(idx) / 64] >> ((idx) % 64)) & 1);
+    assert(flag.size() > idx / BITCT);
+    return ((flag[(idx) / BITCT] >> ((idx) % BITCT)) & 1);
 }
 
 bool is_na(const std::string& in)
@@ -47,10 +68,12 @@ bool parse_attribute(const std::string& attribute_str, std::string& gene_id,
     bool found_id = false, found_name = false;
     for (auto&& a : attributes)
     {
+        // remove space before the attribute name
+        misc::trim(a);
         if (a.rfind("gene_id", 0) == 0)
         {
             token = misc::split(a, " ");
-            if (a.size() != 2)
+            if (token.size() != 2)
             {
                 throw std::runtime_error("Error: Malformed attribute value: "
                                          + a);
@@ -64,7 +87,7 @@ bool parse_attribute(const std::string& attribute_str, std::string& gene_id,
         else if (a.rfind("gene_name", 0) == 0)
         {
             token = misc::split(a, " ");
-            if (a.size() != 2)
+            if (token.size() != 2)
             {
                 throw std::runtime_error("Error: Malformed attribute value: "
                                          + a);
@@ -99,14 +122,29 @@ double get_p(const std::string& p)
     return p_value;
 }
 
-bool gz_file(const std::string& name)
+bool is_gz_file(const std::string& name)
 {
-    return (name.substr(name.find_last_of(".") + 1) == ("gz"));
+    const unsigned char gz_magic[2] = {0x1f, 0x8b};
+    FILE* fp;
+    if ((fp = fopen(name.c_str(), "rb")) == nullptr)
+    { throw std::runtime_error("Error: Cannot open file - " + name); }
+    unsigned char buf[2];
+    if (fread(buf, 1, 2, fp) == 2)
+    {
+        if (buf[0] == gz_magic[0] && buf[1] == gz_magic[1]) { return true; }
+        return false;
+    }
+    else
+    {
+        // can open the file, but can't read the magic number.
+        return false;
+    }
 }
+
 bool open_file(const std::string& name, GZSTREAM_NAMESPACE::igzstream& gz,
                std::ifstream& file)
 {
-    bool is_gz = gz_file(name);
+    bool is_gz = is_gz_file(name);
     if (is_gz)
     {
         gz.open(name.c_str());
@@ -158,7 +196,9 @@ size_t calculate_column(const double& pvalue,
 
 std::string get_bim_name(const std::string& bim)
 {
-    if (bim.substr(bim.find_last_of(".") + 1) == ("bim")) { return bim; }
+    if (bim.find(".") != std::string::npos
+        && bim.substr(bim.find_last_of(".") + 1) == ("bim"))
+    { return bim; }
     else
     {
         return bim + ".bim";
@@ -207,13 +247,13 @@ gen_gene_id_map(const std::string& gtf_name)
     return result;
 }
 
-std::unordered_map<std::string, std::vector<uint64_t>> gen_gene_membership(
+std::unordered_map<std::string, std::vector<size_t>> gen_gene_membership(
     const std::string& msigdb_name,
     const std::unordered_map<std::string, std::unordered_set<std::string>>&
         gene_map,
     std::vector<std::string>& set_name)
 {
-    std::unordered_map<std::string, std::vector<uint64_t>> result;
+    std::unordered_map<std::string, std::vector<size_t>> result;
     std::ifstream msigdb;
     msigdb.open(msigdb_name);
     std::string error_message = "";
@@ -269,7 +309,7 @@ std::unordered_map<std::string, std::vector<uint64_t>> gen_gene_membership(
                 { set_bit(idx, result[gene_id]); }
                 else
                 {
-                    std::vector<uint64_t> tmp(flag_size, 0ULL);
+                    std::vector<size_t> tmp(flag_size, 0ULL);
                     result[gene_id] = tmp;
                     set_bit(0, result[gene_id]);
                     set_bit(idx, result[gene_id]);
@@ -392,16 +432,14 @@ get_snps(const std::string& target, const std::string& sumstat_name,
 }
 
 
-std::unordered_map<std::string, std::vector<uint64_t>>
-gen_binary_pathway_member(
+std::unordered_map<std::string, std::vector<size_t>> gen_binary_pathway_member(
     const std::string& eqtl_name, const std::string& eqtl_snp_id,
     const std::string& eqtl_gene_id, const std::string& eqtl_p,
     const std::unordered_map<std::string, std::string>& valid_snps,
-    const std::unordered_map<std::string, std::vector<uint64_t>>&
-        gene_membership,
+    const std::unordered_map<std::string, std::vector<size_t>>& gene_membership,
     const std::vector<double>& p_threshold, const size_t num_set)
 {
-    std::unordered_map<std::string, std::vector<uint64_t>> snps;
+    std::unordered_map<std::string, std::vector<size_t>> snps;
     std::unordered_map<std::string, std::string>::const_iterator id_map;
     std::ifstream eqtl;
     GZSTREAM_NAMESPACE::igzstream gz_eqtl;
@@ -485,7 +523,7 @@ gen_binary_pathway_member(
         if (snp_flag == snps.end())
         {
             // num_set should contain the background here
-            snps[rsid] = std::vector<uint64_t>(flag_size, 0ULL);
+            snps[rsid] = std::vector<size_t>(flag_size, 0ULL);
             snp_flag = snps.find(rsid);
         }
         // take care of background first
@@ -516,7 +554,7 @@ gen_binary_pathway_member(
 }
 
 void generate_snp_sets(
-    const std::unordered_map<std::string, std::vector<uint64_t>>& snps,
+    const std::unordered_map<std::string, std::vector<size_t>>& snps,
     const std::vector<std::string>& set_name,
     const std::vector<double>& p_thresholds, const std::string& out)
 {
