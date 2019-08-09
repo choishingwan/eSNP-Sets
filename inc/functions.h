@@ -394,7 +394,7 @@ get_snps(const std::string& target, const std::string& sumstat_name,
     }
     size_t num_not_found = 0;
     size_t num_line = 0;
-    const size_t chr_idx = 0, rs_idx = 1, bp_idx = 2;
+    const size_t chr_idx = 0, rs_idx = 1, bp_idx = 3;
     while (std::getline(bim, line))
     {
         misc::trim(line);
