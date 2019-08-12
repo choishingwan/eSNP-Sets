@@ -53,11 +53,8 @@ int main(int argc, char* argv[])
         tissue = misc::split(eqtl, ".").front();
         std::replace(tissue.begin(), tissue.end(), '-', '_');
         std::replace(tissue.begin(), tissue.end(), ' ', '_');
-        tissue_set_names.clear();
-        for (auto&& set : set_names)
-        { tissue_set_names.push_back(tissue + "-" + set); }
-        generate_snp_sets(snp_p, tissue_set_names, commander.threshold(),
-                          commander.out());
+        generate_snp_sets(snp_p, set_names, commander.threshold(),
+                          std::string(commander.out() + "." + tissue));
     }
     std::cerr << "Completed" << std::endl;
     return 0;
