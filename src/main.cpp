@@ -40,12 +40,25 @@ int main(int argc, char* argv[])
         return -1;
     }
     std::cerr << "Obtain eQTL p-values" << std::endl;
-    std::unordered_map<std::string, std::vector<size_t>> snp_p =
-        gen_binary_pathway_member(
-            commander.eqtl(), commander.eqtl_snp(), commander.eqtl_gene(),
-            commander.eqtl_pvalue(), snp_id_map, gene_membership,
-            commander.threshold(), set_names.size());
-    generate_snp_sets(snp_p, set_names, commander.threshold(), commander.out());
+    std::vector<std::string> eqtl_names = misc::split(commander.eqtl(), ",");
+    std::string tissue;
+    std::vector<std::string> tissue_set_names;
+    for (auto&& eqtl : eqtl_names)
+    {
+        std::unordered_map<std::string, std::vector<size_t>> snp_p =
+            gen_binary_pathway_member(
+                eqtl, commander.eqtl_snp(), commander.eqtl_gene(),
+                commander.eqtl_pvalue(), snp_id_map, gene_membership,
+                commander.threshold(), set_names.size());
+        tissue = misc::split(eqtl, ".").front();
+        std::replace(tissue.begin(), tissue.end(), '-', '_');
+        std::replace(tissue.begin(), tissue.end(), ' ', '_');
+        tissue_set_names.clear();
+        for (auto&& set : set_names)
+        { tissue_set_names.push_back(tissue + "-" + set); }
+        generate_snp_sets(snp_p, tissue_set_names, commander.threshold(),
+                          commander.out());
+    }
     std::cerr << "Completed" << std::endl;
     return 0;
 }

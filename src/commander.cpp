@@ -145,7 +145,7 @@ bool Commander::initialize(int argc, char** argv)
     std::cerr << "    --pthres " << m_p_threshold.front();
     for (size_t i = 1; i < m_p_threshold.size(); ++i)
     { std::cerr << "," << m_p_threshold[i]; }
-    std::cerr << std::endl;
+    std::cerr << " \\" << std::endl;
     std::cerr << "    --rsid " << m_s_snp_id << " \\" << std::endl;
     std::cerr << "    --sumstat " << m_sumstat_name << " \\" << std::endl;
     std::cerr << "    --target " << m_target_name << std::endl;
@@ -161,7 +161,8 @@ void Commander::usage()
     std::cerr << "usage: eSNP-Sets [options] <-e eQTL file> <-t Target file> "
                  "<-s Sumstat file>"
               << std::endl;
-    std::cerr << "    --eqtl     | -e    eQTL file" << std::endl;
+    std::cerr << "    --eqtl     | -e    eQTL file(s), can be , seperated"
+              << std::endl;
     std::cerr << "    --sumstat  | -s    Summary statistic file" << std::endl;
     std::cerr << "    --msigdb   | -m    MSigDB file" << std::endl;
     std::cerr << "    --gtf      | -g    GTF file" << std::endl;
