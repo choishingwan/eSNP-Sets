@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
                 commander.eqtl_pvalue(), snp_id_map, gene_membership,
                 commander.threshold(), set_names.size());
         tissue = misc::split(eqtl, ".").front();
+        std::cerr << "Processing: " << tissue << std::endl;
         std::replace(tissue.begin(), tissue.end(), '-', '_');
         std::replace(tissue.begin(), tissue.end(), ' ', '_');
         tissue_set_names.clear();
