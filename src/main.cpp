@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     }
     std::cerr << "Obtain eQTL p-values" << std::endl;
     std::vector<std::string> eqtl_names = misc::split(commander.eqtl(), ",");
-    std::string tissue;
+    std::string tissue, base_name;
     std::vector<std::string> tissue_set_names;
     for (auto&& eqtl : eqtl_names)
     {
@@ -50,7 +50,8 @@ int main(int argc, char* argv[])
                 eqtl, commander.eqtl_snp(), commander.eqtl_gene(),
                 commander.eqtl_pvalue(), snp_id_map, gene_membership,
                 commander.threshold(), set_names.size());
-        tissue = misc::split(eqtl, ".").front();
+        base_name = misc::base_name(eqtl);
+        tissue = misc::split(base_name, ".").front();
         std::cerr << "Processing: " << tissue << std::endl;
         std::replace(tissue.begin(), tissue.end(), '-', '_');
         std::replace(tissue.begin(), tissue.end(), ' ', '_');
