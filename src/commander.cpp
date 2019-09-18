@@ -48,7 +48,7 @@ bool Commander::initialize(int argc, char** argv)
 
         {
             // convert to vector double
-            std::vector<std::string> token = misc::split(optarg);
+            std::vector<std::string> token = misc::split(optarg, ",");
             for (auto&& t : token)
             {
                 try
